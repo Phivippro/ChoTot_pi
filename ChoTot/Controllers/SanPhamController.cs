@@ -53,17 +53,17 @@ namespace ChoTot.Controllers
             if (Result != null) return Ok(Result);
             else return NotFound();
         }
-        [HttpGet]
+        [HttpPost]
         [Route("DanhSachSanPham")]
-        public IActionResult DanhSachSP(int Page)
+        public IActionResult DanhSachSP (PasePagingParams p)
         {
-            if (Page < 1)
+            if (p == null)
             {
                 return BadRequest();
             }
             else
             {
-                var Result = new SanPhamBUS().DanhSachSP(Page);
+                var Result = new SanPhamBUS().DanhSachSP(p);
                 if (Result != null) return Ok(Result);
                 else return NotFound();
             }

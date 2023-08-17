@@ -6,16 +6,18 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using System.Configuration;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
+using Microsoft.Extensions.Configuration;
 
 namespace ChoTot.DAL
 {
     public class SanPhamDAL
     {
-        String strCon = "Data Source=localhost;Initial Catalog=choto;Persist Security Info=True;User ID=dev_user;Password=123456;Trusted_Connection=True";
-        SqlConnection SQLCon = null;
+        string strCon = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build()["ConectionString:choto"];
 
+        SqlConnection SQLCon = null;
         public BaseResultMOD ThemSP(SanPham item, IFormFile file)
         {
             string Picture;
@@ -29,7 +31,7 @@ namespace ChoTot.DAL
                 SqlCommand sqlCmd = new SqlCommand();
                 if (file.Length > 0)
                 {
-                    string path = Path.Combine(Directory.GetCurrentDirectory(),"wwwroot" ,"upload", file.FileName);
+                    string path = Path.Combine(Directory.GetCurrentDirectory(),"wwwroot","upload", file.FileName);
 
                     using (Stream stream = System.IO.File.Create(path))
                     {
@@ -41,16 +43,18 @@ namespace ChoTot.DAL
                 {
                     Picture = "";
                 }
-                sqlCmd.CommandText = "insert into SanPham (MSanPham,Picture ,TenSanPham, LoaiSanPham, SoLuong, DonGia) values (@MSanPham,@Picture, @TenSanPham, @LoaiSanPham, @SoLuong, @DonGia)";
-                sqlCmd.Connection = SQLCon;
-                sqlCmd.Parameters.AddWithValue("@MSanPham", item.MSanPham);
-                sqlCmd.Parameters.AddWithValue("@Picture", Picture);
-                sqlCmd.Parameters.AddWithValue("@TenSanPham", item.TenSanPham);
-                sqlCmd.Parameters.AddWithValue("@LoaiSanPham", item.LoaiSanPham);
-                sqlCmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
-                sqlCmd.Parameters.AddWithValue("@DonGia", item.DonGia);
+               SqlCommand cmd = new SqlCommand();   
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandText = "SanPham_Them";
+                cmd.Connection = SQLCon;
+                cmd.Parameters.AddWithValue("@MSanPham", item.MSanPham);
+                cmd.Parameters.AddWithValue("@Picture", Picture);
+                cmd.Parameters.AddWithValue("@TenSanPham", item.TenSanPham);
+                cmd.Parameters.AddWithValue("@LoaiSanPham", item.LoaiSanPham);
+                cmd.Parameters.AddWithValue("@SoLuong", item.SoLuong);
+                cmd.Parameters.AddWithValue("@DonGia", item.DonGia);
                 SQLCon.Open();
-                sqlCmd.ExecuteNonQuery();
+                cmd.ExecuteNonQuery();
 
                 if (SQLCon!= null)
                 {
@@ -94,8 +98,8 @@ namespace ChoTot.DAL
                        Picture = "";
                     }
                     SqlCommand sqlCmd = new SqlCommand();
-                    sqlCmd.CommandType = CommandType.Text;
-                    sqlCmd.CommandText = "UPDATE [SanPham] SET Picture=@Picture TenSanPham=@TenSanPham, LoaiSanPham=@LoaiSanPham, SoLuong=@SoLuong, DonGia=@DonGia WHERE MSanPham=@MSanPham";
+                    sqlCmd.CommandType = CommandType.StoredProcedure;
+                    sqlCmd.CommandText = "SanPham_Update";
                     sqlCmd.Connection = SQLCon;
 
                     // Use parameters to avoid SQL injection
@@ -105,7 +109,6 @@ namespace ChoTot.DAL
                     sqlCmd.Parameters.AddWithValue("@SoLuong", editSanPham.SoLuong);
                     sqlCmd.Parameters.AddWithValue("@DonGia", editSanPham.DonGia);
                     sqlCmd.Parameters.AddWithValue("@MSanPham", editSanPham.MSanPham);
-
                    sqlCmd.ExecuteNonQuery();
                     if (SQLCon !=null)
                     {
@@ -140,8 +143,9 @@ namespace ChoTot.DAL
                     SQLCon.Open();
                 }
                 SqlCommand cmd = new SqlCommand();
-                cmd.CommandType = CommandType.Text;
-                cmd.CommandText= " DELETE FROM SanPham WHERE Msanpham =  '" + msanpham + "'";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandText= "SanPham_DELETE";
+                cmd.Parameters.AddWithValue("@MSanPham", msanpham);
                 cmd.Connection = SQLCon;
                 cmd.ExecuteNonQuery();
                 if (SQLCon != null)
@@ -178,15 +182,15 @@ namespace ChoTot.DAL
                     SQLCon.Open();
                 }
                 SqlCommand cmd = new SqlCommand();
-                cmd.CommandType = CommandType.Text;
-                cmd.CommandText = "select tensanpham from SanPham where Msanpham= '" + msanpham +  "'";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandText = "SanPham_ChiTiet";
+                cmd.Parameters.AddWithValue("@MSanPham", msanpham);
                 cmd.Connection = SQLCon;
                 SqlDataReader reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
                     item = new SanPham();
-                    item.TenSanPham = reader.GetString(0);
-                    
+                    item.TenSanPham = reader.GetString(0);               
                 }
                 reader.Close();
             }
@@ -197,20 +201,25 @@ namespace ChoTot.DAL
             }
             return item;
         }
-        public BaseResultMOD GetDanhSachSanPham(int Page)
+        public BaseResultMOD GetDanhSachSanPham(PasePagingParams p)
         {
             var Result = new BaseResultMOD();
             List<danhsachSP> productList = new List<danhsachSP>();
             try
             {
-                const int ProductPerPage = 20;
-                int startPage = ProductPerPage * (Page - 1);
+               
                 using (SqlConnection SQLCon= new SqlConnection(strCon))
                 {
                     SQLCon.Open();
                     SqlCommand cmd = new SqlCommand();
-                    cmd.CommandType = CommandType.Text;
-                    cmd.CommandText = "select msanpham, picture,tensanpham,loaisanpham,soluong,dongia from SanPham order by id offset "+startPage+" rows fetch next "+ProductPerPage+" rows only";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandText = "SanPham_DanhSach";
+                    cmd.Parameters.AddWithValue("@Keyword", ("'%").ToString() + p.Keyword + ("%'").ToString());
+                    cmd.Parameters.AddWithValue("@pagesize", p.PageSize);
+                    cmd.Parameters.AddWithValue("@offset", p.Offset);
+                    cmd.Parameters.AddWithValue("@limit", p.Limit);
+                    cmd.Parameters.AddWithValue("@orderbyname", p.OrderByName);
+                    cmd.Parameters.AddWithValue("@orderbyoption", p.OrderByOption);
                     cmd.Connection = SQLCon;
                     SqlDataReader reader = cmd.ExecuteReader();
                     while (reader.Read())
@@ -226,7 +235,7 @@ namespace ChoTot.DAL
                     }
                     reader.Close();
                 }
-                Result.Status = -1;
+                Result.Status = 1;
                 Result.Data = productList;
             }
             catch (Exception)
@@ -236,32 +245,36 @@ namespace ChoTot.DAL
 
             return Result;
         }
-        public searchSP SearchByName(string name)
+        public BaseResultMOD SearchByName(string name)
         {
-            var Result = new searchSP();
+           List<danhsachSP>  danhsachSPsearchbyname = new List<danhsachSP> ();
+            var Result = new BaseResultMOD();
             try
             {
                 using (SqlConnection SQLCon = new SqlConnection(strCon))
                 {
                     SQLCon.Open();
                     SqlCommand cmd = new SqlCommand();
-                    cmd.CommandType = CommandType.Text;
-                    cmd.CommandText = "select msanpham,picture,tensanpham,loaisanpham,soluong,dongia from SanPham where tensanpham = '" + name + "'";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandText = "SanPham_Search_by_Name";
+                    cmd.Parameters.AddWithValue("@TenSanPham", name);
                     cmd.Connection = SQLCon;
                     SqlDataReader reader = cmd.ExecuteReader();
                     while (reader.Read())
                     {
-                        Result = new searchSP();
-                        Result.MSanPham = reader.GetString(0);
-                        Result.Picture = reader.GetString(1);
-                        Result.TenSanPham = reader.GetString(2);
-                        Result.LoaiSanPham = reader.GetString(3);
-                        Result.SoLuong = reader.GetInt32(4);
-                        Result.DonGia = (float)reader.GetDecimal(5);                        
+                        danhsachSP item = new danhsachSP();
+                        item.MSanPham = reader.GetString(0);
+                        item.Picture = reader.GetString(1);
+                        item.TenSanPham = reader.GetString(2);
+                        item.LoaiSanPham = reader.GetString(3);
+                        item.SoLuong = reader.GetInt32(4);
+                        item.DonGia = (float)reader.GetDecimal(5);
+                        danhsachSPsearchbyname.Add(item);
                     }
                     reader.Close();
                 }
-                
+                Result.Status = 1;
+                Result.Data = danhsachSPsearchbyname;
             }
             catch (Exception)
             {
@@ -283,8 +296,11 @@ namespace ChoTot.DAL
                 { 
                     SQLCon.Open();
                     SqlCommand cmd = new SqlCommand(); 
-                    cmd.CommandType = CommandType.Text;
-                    cmd.CommandText = "select msanpham,picture,tensanpham,loaisanpham,soluong,dongia from SanPham where loaisanpham = '" + loaisp + "'order by id offset "+startPage+" rows fetch next "+ProductPerPage+" rows only";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandText = "SanPham_DanhSachLoaiSP";
+                    cmd.Parameters.AddWithValue("@ProductPerPage", ProductPerPage);
+                    cmd.Parameters.AddWithValue("@startPage", startPage);
+                    cmd.Parameters.AddWithValue("@LoaiSanPham", loaisp);
                     cmd.Connection = SQLCon;
                     SqlDataReader reader = cmd.ExecuteReader();
                     while (reader.Read())

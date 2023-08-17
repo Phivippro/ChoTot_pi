@@ -10,6 +10,7 @@ namespace ChoTot.MOD
     {
         public int Status { get; set; } = 0;
         public string Message { get; set; } = "";
+        public object Data1 { get; set; }
         public object Data { get; set; }
         public int TotalRow { get; set; }
 

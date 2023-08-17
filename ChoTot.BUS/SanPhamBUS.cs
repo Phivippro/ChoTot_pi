@@ -56,6 +56,8 @@ namespace ChoTot.BUS
                     }
                     else
                     {
+                        Result.Status = 1;
+                        Result.Message = "thêm sản phẩm thành công";
                         return new SanPhamDAL().ThemSP(item, file);
                     }
                 }               
@@ -109,6 +111,8 @@ namespace ChoTot.BUS
                     }
                     else
                     {
+                        Result.Status = 1;
+                        Result.Message = "xóa thành công";
                         return new SanPhamDAL().SuaSP(item, file);
                     }
                 }
@@ -155,18 +159,22 @@ namespace ChoTot.BUS
             }
             return Result;
         }
-        public BaseResultMOD DanhSachSP(int page)
+        public BaseResultMOD DanhSachSP(PasePagingParams p)
         {
             var Result = new BaseResultMOD();
                 try
                 {
-                if (page == 0)
+                if (p == null)
                 {
                     Result.Status = 0;
                     Result.Message = "vui lòng nhập số trang";
                 }
                 else {
-                    Result = new SanPhamDAL().GetDanhSachSanPham(page); }   
+                   
+                    Result = new SanPhamDAL().GetDanhSachSanPham(p);
+                    Result.Status = 1;
+                    Result.Message = "lấy danh sách thành công";
+                }   
                    
                 }
                 catch (Exception ex)
@@ -175,13 +183,11 @@ namespace ChoTot.BUS
                     Result.Data = null;
                     Result.Message = "Lỗi khi lấy danh sách sản phẩm: " + ex.Message;
                 }
-
                 return Result;
             
         }
-        public searchSP timkiembyname(string name)
+        public BaseResultMOD timkiembyname(string name)
         {
-            var item = new searchSP();
             var Result = new BaseResultMOD();
             try
             {
@@ -200,7 +206,9 @@ namespace ChoTot.BUS
                     }
                     else
                     {
-                        return checksp;
+                         Result = checksp;
+                        Result.Status = 1;
+                        Result.Message = "lấy danh sách thành công";
                     }
                 }
             }
@@ -209,7 +217,7 @@ namespace ChoTot.BUS
 
                 throw;
             }
-            return item;
+            return Result;
         }
         public BaseResultMOD phanloaisp(string loaisp,int page)
         {
@@ -223,6 +231,8 @@ namespace ChoTot.BUS
                 }
                 else
                 {
+                    Result.Status = 1;
+                    Result.Message = "lấy danh sách thành công";
                     Result = new SanPhamDAL().DanhSachSPbytypeSP(loaisp,page);
                 }
             }
