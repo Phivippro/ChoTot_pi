@@ -11,7 +11,7 @@ namespace ChoTot.Controllers
     {
         [HttpPost]
         [Route("Login")]
-        public IActionResult Login([FromForm] TaiKhoanMOD login)
+        public IActionResult Login([FromBody] TaiKhoanMOD login)
         {
             if (login == null) return BadRequest();
             var Result = new TaiKhoanBUS().Dangnhap(login);
@@ -20,7 +20,7 @@ namespace ChoTot.Controllers
         }
         [HttpPost]
         [Route("Register")]
-        public IActionResult Register([FromForm] Dangkytaikhoan item)
+        public IActionResult Register([FromBody] Dangkytaikhoan item)
         {
             if (item == null) return BadRequest();
             var Result = new TaiKhoanBUS().DangKytaikhoan(item);
@@ -44,7 +44,15 @@ namespace ChoTot.Controllers
                 else return NotFound();
             }
         }
-
+        [HttpPut]
+        [Route("ChangePass")]
+        public IActionResult ChangePass([FromBody] Changepassword item)
+        {
+            if (item == null) return BadRequest();
+            var result = new TaiKhoanBUS().ChangePass(item);
+            if (result != null) return Ok(result);
+            else return NotFound();
+        }
     }
 
 }
